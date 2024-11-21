@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'expo-router';
 import {
   Image,
   StyleSheet,
@@ -25,20 +26,23 @@ export default function CoursesScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const router = useRouter();
+
+  const [originalCourses, setOriginalCourses] = useState<Course[]>([]);
 
   const fetchCourses = async () => {
     try {
       const authManager = AuthManager;
-      const records = await authManager.fetchCollection('Courses'); // Ambil data dari koleksi 'Courses'
-      setCourses(
-        records.map((course: any) => ({
-          id: course.id,
-          title: course.Judul,
-          description: course.Deskripsi,
-          level: course.Level,
-          image: `${process.env.EXPO_PUBLIC_DB_HOST}/api/files/${course.collectionId}/${course.id}/${course.Banner}`,
-        }))
-      );
+      const records = await authManager.fetchCollection('Courses');
+      const formattedCourses = records.map((course: any) => ({
+        id: course.id,
+        title: course.Judul,
+        description: course.Deskripsi,
+        level: course.Level,
+        image: `${process.env.EXPO_PUBLIC_DB_HOST}/api/files/${course.collectionId}/${course.id}/${course.Banner}`,
+      }));
+      setCourses(formattedCourses);
+      setOriginalCourses(formattedCourses);
     } catch (error) {
       console.error('Error fetching courses:', error);
     } finally {
@@ -52,12 +56,16 @@ export default function CoursesScreen() {
 
   const handleSearch = (query: string) => {
     setSearchQuery(query);
-    const filtered = courses.filter(
-      (course) =>
-        course.title.toLowerCase().includes(query.toLowerCase()) ||
-        course.description.toLowerCase().includes(query.toLowerCase())
-    );
-    setCourses(filtered);
+    if (query === '') {
+      setCourses(originalCourses);
+    } else {
+      const filtered = originalCourses.filter(
+        (course) =>
+          course.title.toLowerCase().includes(query.toLowerCase()) ||
+          course.description.toLowerCase().includes(query.toLowerCase())
+      );
+      setCourses(filtered);
+    }
   };
 
   const renderCourseCard = ({ item }: { item: Course }) => (
@@ -71,7 +79,8 @@ export default function CoursesScreen() {
         <Text style={styles.courseLevel}>Level: {item.level}</Text>
       </View>
       <TouchableOpacity style={styles.startButton}>
-        <ThemedText type="defaultSemiBold" style={styles.startButtonText}>
+        <ThemedText type="defaultSemiBold" style={styles.startButtonText} onPress={() => router.push(`/(tabs)/learning/${item.id}`)}
+        >
           Start Course
         </ThemedText>
       </TouchableOpacity>

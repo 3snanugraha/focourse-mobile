@@ -37,8 +37,8 @@ class AuthManager {
     private async ensureAuthenticated(): Promise<void> {
         if (!pb.authStore.isValid) {
             try {
-                const authData = await pb.admins.authWithPassword(this.email, this.password);
-                console.log('Authenticated successfully:', authData);
+                await pb.admins.authWithPassword(this.email, this.password);
+                console.log('Authenticated successfully');
             } catch (error) {
                 console.error('Authentication failed:', error);
                 throw new Error('Authentication failed. Please check your credentials.');
@@ -47,19 +47,37 @@ class AuthManager {
     }
 
     /**
-     * Fetch all records from a collection.
+     * Fetch all records from a collection with optional query parameters.
      * @param collectionName - The name of the PocketBase collection.
-     * @param expand - Optionally expand relational fields.
+     * @param queryOptions - Optional query parameters such as filter, sort, etc.
      */
-    public async fetchCollection(collectionName: string, expand: string = ''): Promise<any[]> {
-        await this.ensureAuthenticated(); // Ensure authentication before fetching
+    public async fetchCollection(collectionName: string, queryOptions: Record<string, any> = {}): Promise<any[]> {
+        await this.ensureAuthenticated();
         try {
-            const records = await pb.collection(collectionName).getFullList(200, { expand });
+            const records = await pb.collection(collectionName).getFullList(200, queryOptions);
             console.log(`Fetched ${records.length} records from ${collectionName}`);
             return records;
         } catch (error) {
             console.error(`Failed to fetch data from ${collectionName}:`, error);
             throw new Error(`Failed to fetch data from ${collectionName}.`);
+        }
+    }
+
+    /**
+     * Fetch a single record by ID from a collection.
+     * @param collectionName - The name of the PocketBase collection.
+     * @param id - The ID of the record.
+     * @param expand - Optionally expand relational fields.
+     */
+    public async fetchRecord(collectionName: string, id: string, expand: string = ''): Promise<any> {
+        await this.ensureAuthenticated();
+        try {
+            const record = await pb.collection(collectionName).getOne(id, { expand });
+            // console.log(`Fetched record from ${collectionName}:`, record);
+            return record;
+        } catch (error) {
+            // console.error(`Failed to fetch record from ${collectionName} with ID ${id}:`, error);
+            throw new Error(`Failed to fetch record with ID ${id} from ${collectionName}.`);
         }
     }
 
