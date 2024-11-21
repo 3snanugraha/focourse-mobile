@@ -9,10 +9,12 @@ import {
   View,
   Text,
   ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import { ThemedView } from '@/components/ThemedView';
 import { ThemedText } from '@/components/ThemedText';
 import AuthManager from '@/services/Auth';
+
 
 interface Course {
   id: string;
@@ -20,12 +22,17 @@ interface Course {
   description: string;
   level: string;
   image: string;
+  language: string;
+  totalLessons?: number;
 }
 
 export default function CoursesScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [refreshing, setRefreshing] = useState<boolean>(false);
+  // Change to optional chaining or default value
+  const [languageFilter, setLanguageFilter] = useState<string>('EN');
   const router = useRouter();
 
   const [originalCourses, setOriginalCourses] = useState<Course[]>([]);
@@ -39,14 +46,20 @@ export default function CoursesScreen() {
         title: course.Judul,
         description: course.Deskripsi,
         level: course.Level,
+        language: course.Bahasa,
         image: `${process.env.EXPO_PUBLIC_DB_HOST}/api/files/${course.collectionId}/${course.id}/${course.Banner}`,
       }));
-      setCourses(formattedCourses);
+      
+      // Filter courses to EN by default
+      const filteredCourses = formattedCourses.filter(course => course.language === 'EN');
+      
+      setCourses(filteredCourses);
       setOriginalCourses(formattedCourses);
     } catch (error) {
       console.error('Error fetching courses:', error);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
@@ -54,18 +67,41 @@ export default function CoursesScreen() {
     fetchCourses();
   }, []);
 
+  const onRefresh = React.useCallback(() => {
+    setRefreshing(true);
+    fetchCourses();
+  }, []);
+
   const handleSearch = (query: string) => {
     setSearchQuery(query);
-    if (query === '') {
-      setCourses(originalCourses);
-    } else {
-      const filtered = originalCourses.filter(
+    filterCourses(query, languageFilter);
+  };
+
+  const handleLanguageFilter = (language: string) => {
+    // If the current language is the same, reset to null
+    const newLanguageFilter = languageFilter === language ? '' : language;
+    setLanguageFilter(newLanguageFilter);
+    filterCourses(searchQuery, newLanguageFilter);
+  };
+
+  const filterCourses = (query: string, language: string) => {
+    let filteredCourses = originalCourses;
+
+    if (query) {
+      filteredCourses = filteredCourses.filter(
         (course) =>
           course.title.toLowerCase().includes(query.toLowerCase()) ||
           course.description.toLowerCase().includes(query.toLowerCase())
       );
-      setCourses(filtered);
     }
+
+    if (language) {
+      filteredCourses = filteredCourses.filter(
+        (course) => course.language === language
+      );
+    }
+
+    setCourses(filteredCourses);
   };
 
   const renderCourseCard = ({ item }: { item: Course }) => (
@@ -79,12 +115,34 @@ export default function CoursesScreen() {
         <Text style={styles.courseLevel}>Level: {item.level}</Text>
       </View>
       <TouchableOpacity style={styles.startButton}>
-        <ThemedText type="defaultSemiBold" style={styles.startButtonText} onPress={() => router.push(`/(tabs)/learning/${item.id}`)}
+        <ThemedText 
+          type="defaultSemiBold" 
+          style={styles.startButtonText} 
+          onPress={() => router.push(`/(tabs)/learning/${item.id}`)}
         >
           Start Course
         </ThemedText>
       </TouchableOpacity>
     </View>
+  );
+
+  const LanguageFilterButton = ({ language, flagEmoji }: { language: string, flagEmoji: string }) => (
+    <TouchableOpacity 
+      style={[
+        styles.languageFilterButton, 
+        languageFilter === language && styles.activeLanguageFilterButton
+      ]}
+      onPress={() => handleLanguageFilter(language)}
+    >
+      <Text 
+        style={[
+          styles.languageFilterButtonText, 
+          languageFilter === language && styles.activeLanguageFilterButtonText
+        ]}
+      >
+        {flagEmoji} {language}
+      </Text>
+    </TouchableOpacity>
   );
 
   return (
@@ -100,19 +158,39 @@ export default function CoursesScreen() {
           keyExtractor={(item) => item.id}
           renderItem={renderCourseCard}
           contentContainerStyle={styles.listContainer}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={['#407BFF']}
+              tintColor="#407BFF"
+            />
+          }
           ListHeaderComponent={
             <View>
               <Image
                 source={require('@/assets/images/banner.jpeg')}
                 style={styles.reactLogo}
               />
-              <TextInput
-                style={styles.searchInput}
-                placeholder="Search courses..."
-                placeholderTextColor="#888"
-                value={searchQuery}
-                onChangeText={handleSearch}
-              />
+              <View style={styles.searchAndFilterContainer}>
+                <TextInput
+                  style={styles.searchInput}
+                  placeholder="Search courses..."
+                  placeholderTextColor="#888"
+                  value={searchQuery}
+                  onChangeText={handleSearch}
+                />
+                <View style={styles.languageFilterContainer}>
+                  <LanguageFilterButton 
+                    language="ID" 
+                    flagEmoji="🇮🇩" 
+                  />
+                  <LanguageFilterButton 
+                    language="EN" 
+                    flagEmoji="🇬🇧" 
+                  />
+                </View>
+              </View>
             </View>
           }
         />
@@ -205,5 +283,31 @@ const styles = StyleSheet.create({
   startButtonText: {
     color: '#fff',
     fontSize: 16,
+  },
+  searchAndFilterContainer: {
+    marginHorizontal: 16,
+  },
+  languageFilterContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginTop: 10,
+    marginBottom: 16,
+  },
+  languageFilterButton: {
+    backgroundColor: '#f0f0f0',
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    marginHorizontal: 5,
+    borderRadius: 20,
+  },
+  activeLanguageFilterButton: {
+    backgroundColor: '#407BFF',
+  },
+  languageFilterButtonText: {
+    color: '#000',
+    fontWeight: 'bold',
+  },
+  activeLanguageFilterButtonText: {
+    color: '#fff',
   },
 });
