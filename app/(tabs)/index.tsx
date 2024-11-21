@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Image,
   StyleSheet,
@@ -7,11 +7,11 @@ import {
   TouchableOpacity,
   View,
   Text,
+  ActivityIndicator,
 } from 'react-native';
-
-import ParallaxScrollView from '@/components/ParallaxScrollView';
 import { ThemedView } from '@/components/ThemedView';
 import { ThemedText } from '@/components/ThemedText';
+import AuthManager from '@/services/Auth';
 
 interface Course {
   id: string;
@@ -21,49 +21,48 @@ interface Course {
   image: string;
 }
 
-// Mock data
-const mockCourses = [
-  {
-    id: '1',
-    title: 'Introduction to Forex',
-    description: 'Learn the basics of Forex trading.',
-    level: 'Beginner',
-    image: '@/assets/images/beginner.png',
-  },
-  {
-    id: '2',
-    title: 'Intermediate Forex Strategies',
-    description: 'Enhance your trading skills.',
-    level: 'Intermediate',
-    image: '@/assets/images/intermediate.png',
-  },
-  {
-    id: '3',
-    title: 'Expert Forex Tactics',
-    description: 'Master the art of Forex trading.',
-    level: 'Expert',
-    image: '@/assets/images/expert.png',
-  },
-];
-
 export default function CoursesScreen() {
   const [searchQuery, setSearchQuery] = useState('');
-  const [filteredCourses, setFilteredCourses] = useState(mockCourses);
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+
+  const fetchCourses = async () => {
+    try {
+      const authManager = AuthManager;
+      const records = await authManager.fetchCollection('Courses'); // Ambil data dari koleksi 'Courses'
+      setCourses(
+        records.map((course: any) => ({
+          id: course.id,
+          title: course.Judul,
+          description: course.Deskripsi,
+          level: course.Level,
+          image: `${process.env.EXPO_PUBLIC_DB_HOST}/api/files/${course.collectionId}/${course.id}/${course.Banner}`,
+        }))
+      );
+    } catch (error) {
+      console.error('Error fetching courses:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchCourses();
+  }, []);
 
   const handleSearch = (query: string) => {
     setSearchQuery(query);
-    setFilteredCourses(
-      mockCourses.filter(
-        (course) =>
-          course.title.toLowerCase().includes(query.toLowerCase()) ||
-          course.description.toLowerCase().includes(query.toLowerCase())
-      )
+    const filtered = courses.filter(
+      (course) =>
+        course.title.toLowerCase().includes(query.toLowerCase()) ||
+        course.description.toLowerCase().includes(query.toLowerCase())
     );
+    setCourses(filtered);
   };
 
   const renderCourseCard = ({ item }: { item: Course }) => (
     <View style={styles.courseCard}>
-      <Image source={{ uri: item.image }} style={styles.courseImage} />
+      <Image source={{ uri: item.image }} style={styles.courseImage} resizeMode="contain" />
       <View style={styles.courseInfo}>
         <ThemedText type="defaultSemiBold" style={styles.courseTitle}>
           {item.title}
@@ -80,44 +79,59 @@ export default function CoursesScreen() {
   );
 
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/banner.jpeg')}
-          style={styles.reactLogo}
+    <ThemedView style={styles.container}>
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#407BFF" />
+          <Text style={styles.loadingText}>Loading courses...</Text>
+        </View>
+      ) : (
+        <FlatList
+          data={courses}
+          keyExtractor={(item) => item.id}
+          renderItem={renderCourseCard}
+          contentContainerStyle={styles.listContainer}
+          ListHeaderComponent={
+            <View>
+              <Image
+                source={require('@/assets/images/banner.jpeg')}
+                style={styles.reactLogo}
+              />
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Search courses..."
+                placeholderTextColor="#888"
+                value={searchQuery}
+                onChangeText={handleSearch}
+              />
+            </View>
+          }
         />
-      }>
-      <ThemedView style={styles.searchContainer}>
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search courses..."
-          placeholderTextColor="#888"
-          value={searchQuery}
-          onChangeText={handleSearch}
-        />
-      </ThemedView>
-      <FlatList
-        data={filteredCourses}
-        keyExtractor={(item) => item.id}
-        renderItem={renderCourseCard}
-        contentContainerStyle={styles.listContainer}
-      />
-    </ParallaxScrollView>
+      )}
+    </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
-  reactLogo: {
-    height: '100%',
-    width: '100%',
-    resizeMode: 'cover',
-    position: 'absolute',
-    top: 0,
-    left: 0,
+  container: {
+    flex: 1,
   },
-  searchContainer: {
-    margin: 16,
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: '#666',
+  },
+  reactLogo: {
+    height: 180,
+    width: '100%',
+    marginTop: '8%',
+    resizeMode: 'cover',
+    marginBottom: 16,
   },
   searchInput: {
     backgroundColor: '#fff',
@@ -127,14 +141,16 @@ const styles = StyleSheet.create({
     fontSize: 16,
     borderColor: '#407BFF',
     borderWidth: 1,
+    marginHorizontal: 16,
+    marginBottom: 16,
   },
   listContainer: {
-    paddingHorizontal: 16,
     paddingBottom: 16,
   },
   courseCard: {
     backgroundColor: '#fff',
     borderRadius: 10,
+    marginHorizontal: 16,
     marginBottom: 16,
     padding: 12,
     elevation: 4,
@@ -142,7 +158,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 4,
-    alignItems: 'center', // Agar elemen dalam card terpusat
+    alignItems: 'center',
   },
   courseImage: {
     width: '100%',

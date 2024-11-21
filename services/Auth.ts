@@ -2,11 +2,11 @@ import PocketBase from 'pocketbase';
 
 // Environment variables
 const dbHost = process.env.EXPO_PUBLIC_DB_HOST ?? '';
-const dbUser  = process.env.EXPO_PUBLIC_DB_USER ?? '';
+const dbUser = process.env.EXPO_PUBLIC_DB_USER ?? '';
 const dbPass = process.env.EXPO_PUBLIC_DB_PASS ?? '';
 
 // Validasi environment variables
-if (!dbHost || !dbUser  || !dbPass) {
+if (!dbHost || !dbUser || !dbPass) {
     throw new Error('Environment variables EXPO_PUBLIC_DB_HOST, EXPO_PUBLIC_DB_USER, and EXPO_PUBLIC_DB_PASS must be defined.');
 }
 
@@ -15,53 +15,60 @@ const pb = new PocketBase(dbHost);
 
 class AuthManager {
     private static instance: AuthManager | null = null;
-    private pb: PocketBase;
     private email: string;
     private password: string;
-    public isAuthenticated = false;
-    public token: string | null = null;
-    public user: any = null; // Consider defining a specific type for user
 
     private constructor(email: string, password: string) {
-        this.pb = pb;
         this.email = email;
         this.password = password;
     }
 
     public static getInstance(): AuthManager {
         if (!AuthManager.instance) {
-            AuthManager.instance = new AuthManager(dbUser , dbPass);
+            AuthManager.instance = new AuthManager(dbUser, dbPass);
         }
         return AuthManager.instance;
     }
 
-    public async authenticate(): Promise<void> {
-        if (!this.email || !this.password) {
-            throw new Error('Email and password must be defined.');
+    /**
+     * Ensure the user is authenticated.
+     * If already authenticated, skip re-authentication.
+     */
+    private async ensureAuthenticated(): Promise<void> {
+        if (!pb.authStore.isValid) {
+            try {
+                const authData = await pb.admins.authWithPassword(this.email, this.password);
+                console.log('Authenticated successfully:', authData);
+            } catch (error) {
+                console.error('Authentication failed:', error);
+                throw new Error('Authentication failed. Please check your credentials.');
+            }
         }
+    }
 
+    /**
+     * Fetch all records from a collection.
+     * @param collectionName - The name of the PocketBase collection.
+     * @param expand - Optionally expand relational fields.
+     */
+    public async fetchCollection(collectionName: string, expand: string = ''): Promise<any[]> {
+        await this.ensureAuthenticated(); // Ensure authentication before fetching
         try {
-            const authData = await this.pb.admins.authWithPassword(this.email, this.password);
-            this.isAuthenticated = this.pb.authStore.isValid;
-            this.token = this.pb.authStore.token;
-            this.user = this.pb.authStore.model;
-            console.log('Authenticated as:', this.user);
+            const records = await pb.collection(collectionName).getFullList(200, { expand });
+            console.log(`Fetched ${records.length} records from ${collectionName}`);
+            return records;
         } catch (error) {
-            console.error('Authentication failed:', error);
-            throw new Error('Authentication failed. Please check your credentials.');
+            console.error(`Failed to fetch data from ${collectionName}:`, error);
+            throw new Error(`Failed to fetch data from ${collectionName}.`);
         }
     }
 
+    /**
+     * Logout the current user and clear the session.
+     */
     public logout(): void {
-        this.pb.authStore.clear();
-        this.isAuthenticated = false;
-        this.token = null;
-        this.user = null;
+        pb.authStore.clear();
         console.warn('Logged out successfully');
-    }
-
-    public getPocketBase(): PocketBase {
-        return this.pb;
     }
 }
 
