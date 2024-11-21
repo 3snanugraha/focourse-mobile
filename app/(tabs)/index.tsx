@@ -129,7 +129,7 @@ const styles = StyleSheet.create({
   reactLogo: {
     height: 180,
     width: '100%',
-    marginTop: '8%',
+    marginTop: '7%',
     resizeMode: 'cover',
     marginBottom: 16,
   },
