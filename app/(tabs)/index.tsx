@@ -5,6 +5,8 @@ import ParallaxScrollView from '@/components/ParallaxScrollView';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 
+const testHost = process.env.EXPO_PUBLIC_DB_HOST;
+
 export default function HomeScreen() {
   return (
     <ParallaxScrollView
