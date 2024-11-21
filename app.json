@@ -15,7 +15,8 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/forecourse.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "com.forecourse.app"
     },
     "web": {
       "bundler": "metro",
@@ -27,6 +28,11 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "81646bb6-880f-4979-ab95-462867c2ba66"
+      }
     }
   }
 }
