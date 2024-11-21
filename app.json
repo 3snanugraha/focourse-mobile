@@ -8,6 +8,11 @@
     "scheme": "myapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/images/forecourse.png",
+      "resizeMode": "cover",
+      "backgroundColor": "#ffffff"
+    },
     "ios": {
       "supportsTablet": true
     },
@@ -31,7 +36,7 @@
     },
     "extra": {
       "eas": {
-        "projectId": "81646bb6-880f-4979-ab95-462867c2ba66"
+        "projectId": "3f6398a1-981c-4413-abc5-fa4daf43e8d8"
       }
     }
   }
