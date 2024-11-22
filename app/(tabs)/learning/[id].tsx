@@ -21,6 +21,59 @@ interface Course {
   image: string;
 }
 
+// Separate Lesson Item component
+const LessonItem = ({ 
+  lesson, 
+  isSelected, 
+  onToggle 
+}: { 
+  lesson: Lesson; 
+  isSelected: boolean; 
+  onToggle: (id: string) => void;
+}) => {
+  const renderLessonContent = () => {
+    const safeMarkdownContent = lesson.content || '';
+
+    return (
+      <ScrollView 
+        style={styles.lessonContentWrapper}
+        contentContainerStyle={styles.lessonContentScrollView}
+      >
+        <Markdown
+          style={{
+            body: styles.markdownBody,
+            heading1: styles.markdownHeading,
+            paragraph: styles.markdownParagraph,
+          }}
+        >
+          {safeMarkdownContent}
+        </Markdown>
+      </ScrollView>
+    );
+  };
+
+  return (
+    <View style={styles.lessonContainer}>
+      <TouchableOpacity
+        style={[
+          styles.lessonItem, 
+          isSelected && styles.lessonItemSelected
+        ]}
+        onPress={() => onToggle(lesson.id)}
+      >
+        <Text style={styles.lessonOrder}>
+          {`Lesson ${lesson.order}`}
+        </Text>
+        <Text style={styles.lessonName}>
+          {lesson.title}
+        </Text>
+      </TouchableOpacity>
+      
+      {isSelected && renderLessonContent()}
+    </View>
+  );
+};
+
 export default function ExploreDetail() {
   const router = useRouter();
   const { id } = useLocalSearchParams();
@@ -43,7 +96,6 @@ export default function ExploreDetail() {
     try {
       const authManager = AuthManager;
 
-      // Fetch course details
       const courseData = await authManager.fetchRecord('Courses', id as string);
       const formattedCourse: Course = {
         id: courseData.id,
@@ -54,7 +106,6 @@ export default function ExploreDetail() {
       };
       setCourse(formattedCourse);
 
-      // Fetch lessons for this course
       const lessonRecords = await authManager.fetchCollection('Lesson', {
         filter: `Courses_ID="${id}"`,
       });
@@ -62,7 +113,7 @@ export default function ExploreDetail() {
       const formattedLessons: Lesson[] = lessonRecords.map((lesson: any) => ({
         id: lesson.id,
         title: lesson.Judul,
-        content: lesson.Konten || '', // Ensure content is a string
+        content: lesson.Konten || '',
         order: lesson.Urutan,
       }));
       setLessons(formattedLessons.sort((a, b) => a.order - b.order));
@@ -94,53 +145,6 @@ export default function ExploreDetail() {
     </ThemedView>
   );
 
-  const renderLessonContent = (lesson: Lesson) => {
-    const safeMarkdownContent = lesson.content || '';
-
-    return (
-      <ScrollView 
-        style={styles.lessonContentWrapper}
-        contentContainerStyle={styles.lessonContentScrollView}
-      >
-        <Markdown
-          style={{
-            body: styles.markdownBody,
-            heading1: styles.markdownHeading,
-            paragraph: styles.markdownParagraph,
-          }}
-        >
-          {safeMarkdownContent}
-        </Markdown>
-      </ScrollView>
-    );
-  };
-
-  const renderLessonItem = (lesson: Lesson) => {
-    const isSelected = selectedLessonId === lesson.id;
-  
-    return (
-      <View key={lesson.id} style={styles.lessonContainer}>
-        <TouchableOpacity
-          style={[
-            styles.lessonItem, 
-            isSelected && styles.lessonItemSelected
-          ]}
-          onPress={() => toggleLesson(lesson.id)}
-        >
-          <Text style={styles.lessonOrder}>
-            {`Lesson ${lesson.order}`}
-          </Text>
-          <Text style={styles.lessonName}>
-            {lesson.title}
-          </Text>
-        </TouchableOpacity>
-        
-        {/* Render lesson content directly below the lesson item when selected */}
-        {isSelected && renderLessonContent(lesson)}
-      </View>
-    );
-  };
-
   if (loading || !course) {
     return renderLoadingState();
   }
@@ -148,7 +152,6 @@ export default function ExploreDetail() {
   return (
     <ThemedView style={styles.container}>
       <View style={styles.contentContainer}>
-        {/* Course Image and Info */}
         <Image 
           source={{ uri: course.image }} 
           style={styles.courseImage} 
@@ -167,7 +170,6 @@ export default function ExploreDetail() {
           </Text>
         </View>
 
-        {/* Lessons List */}
         <ScrollView
           style={styles.lessonListContainer}
           refreshControl={
@@ -181,7 +183,14 @@ export default function ExploreDetail() {
           <Text style={styles.lessonTitle}>
             Lessons:
           </Text>
-          {lessons.map((lesson) => renderLessonItem(lesson))}
+          {lessons.map((lesson) => (
+            <LessonItem
+              key={lesson.id}  // Key prop is now directly passed here
+              lesson={lesson}
+              isSelected={selectedLessonId === lesson.id}
+              onToggle={toggleLesson}
+            />
+          ))}
         </ScrollView>
       </View>
     </ThemedView>
@@ -209,15 +218,16 @@ const styles = StyleSheet.create({
     color: '#666',
   },
   courseImage: {
-    width: '40%',
-    height: 200,
+    width: 50,
+    height: 50,
+    marginTop: '8%',
     alignSelf: 'center',
     borderRadius: 8,
-    marginBottom: 20,
+    marginBottom: 1,
   },
   courseInfo: {
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 0,
   },
   lessonListContainer: {
     flex: 1,
@@ -226,7 +236,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     color: '#333',
-    marginBottom: 15,
+    marginBottom: 10,
   },
   lessonContainer: {
     marginBottom: 15,
@@ -266,11 +276,11 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   courseTitle: {
-    fontSize: 24,
+    fontSize: 15,
     fontWeight: '700',
     color: '#333',
     textAlign: 'center',
-    marginBottom: 10,
+    marginBottom: 5,
   },
   courseDescription: {
     fontSize: 16,
@@ -279,7 +289,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   courseLevel: {
-    fontSize: 14,
+    fontSize: 10,
     color: '#407BFF',
     fontWeight: '600',
   },

@@ -16,6 +16,7 @@ import { ThemedText } from '@/components/ThemedText';
 import AuthManager from '@/services/Auth';
 
 
+
 interface Course {
   id: string;
   title: string;

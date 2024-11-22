@@ -16,9 +16,9 @@
     "preview": {
       "distribution": "internal",
       "env": {
-        "EXPO_PUBLIC_DB_HOST": "https://focourse.pockethost.io",
-        "EXPO_PUBLIC_DB_USER": "abu@gmail.com",
-        "EXPO_PUBLIC_DB_PASS": "admin12345"
+        "EXPO_PUBLIC_DB_HOST": "$EXPO_PUBLIC_DB_HOST",
+        "EXPO_PUBLIC_DB_USER": "$EXPO_PUBLIC_DB_USER",
+        "EXPO_PUBLIC_DB_PASS": "$EXPO_PUBLIC_DB_PASS"
       }
     },
     "production": {
