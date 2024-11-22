@@ -1,8 +1,8 @@
-# FoCourse Mobile App 📱
+# ForeCourse Mobile App 📱
 
 ## Deskripsi Proyek
 
-FoCourse adalah aplikasi mobile pembelajaran interaktif yang dikembangkan menggunakan React Native dan Expo, dirancang untuk memberikan pengalaman belajar yang menarik dan mudah diakses.
+ForeCourse adalah aplikasi mobile pembelajaran interaktif yang dikembangkan menggunakan React Native dan Expo, dirancang untuk memberikan pengalaman belajar yang menarik dan mudah diakses.
 
 ## Fitur Utama
 
